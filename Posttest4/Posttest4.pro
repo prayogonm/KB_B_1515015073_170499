@@ -1,0 +1,134 @@
+
+/*****************************************************************************
+
+		Copyright (c) 1984 - 2000 Prolog Development Center A/S
+
+ Project:  
+ FileName: CH04E12.PRO
+ Purpose: 
+ Written by: PDC
+ Modifyed by: Eugene Akimov
+ Comments: 
+******************************************************************************/
+
+trace
+domains
+  name,sex,occupation,object,vice,substance = symbol
+  age=integer
+
+predicates
+  person(name,age,sex,occupation) - nondeterm (o,o,o,o), nondeterm (i,o,o,i), nondeterm (i,o,i,o)
+  had_affair(name,name) - nondeterm (i,i), nondeterm (i,o)
+  killed_with(name,object) - determ (i,o)
+  killed(name) - procedure (o)
+  killer(name) - nondeterm (o)
+  motive(vice) - nondeterm (i)
+  smeared_in(name,substance) - nondeterm (i,o), nondeterm (i,i)
+  owns(name,object) - nondeterm (i,i)
+  operates_identically(object,object) - nondeterm (o,i)
+  owns_probably(name,object) - nondeterm (i,i)
+  suspect(name) - nondeterm (i)
+
+/* * * Facts about the murder * * */
+clauses
+  person(bert,55,m,carpenter).
+  person(allan,25,m,football_player).
+  person(allan,25,m,butcher).
+  person(john,25,m,pickpocket).
+
+  had_affair(barbara,john).
+  had_affair(barbara,bert).
+  had_affair(susan,john).
+
+  killed_with(susan,club).
+  killed(susan).
+
+  motive(money).
+  motive(jealousy).
+  motive(righteousness).
+
+  smeared_in(bert,blood).
+  smeared_in(susan,blood).
+  smeared_in(allan,mud).
+  smeared_in(john,chocolate).
+  smeared_in(barbara,chocolate).
+
+  owns(bert,wooden_leg).
+  owns(john,pistol).
+
+/* * * Background knowledge * * */
+
+  operates_identically(wooden_leg, club).
+  operates_identically(bar, club).
+  operates_identically(pair_of_scissors, knife).
+  operates_identically(football_boot, club).
+
+  owns_probably(X,football_boot):-
+	person(X,_,_,football_player).
+  owns_probably(X,pair_of_scissors):-
+	person(X,_,_,hairdresser).
+  owns_probably(X,Object):-
+	owns(X,Object).
+
+/* * * * * * * * * * * * * * * * * * * * * * *
+ * Suspect all those who own a weapon with   *
+ * which Susan could have been killed.       *
+ * * * * * * * * * * * * * * * * * * * * * * */
+
+  suspect(X):-
+	killed_with(susan,Weapon) ,
+	operates_identically(Object,Weapon) ,
+	owns_probably(X,Object).
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Suspect men who have had an affair with Susan.  *
+ * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+  suspect(X):-
+	motive(jealousy),
+	person(X,_,m,_),
+	had_affair(susan,X).
+
+/* * * * * * * * * * * * * * * * * * * * *
+ * Suspect females who have had an       *
+ * affair with someone that Susan knew.  *
+ * * * * * * * * * * * * * * * * * * * * */
+
+  suspect(X):-
+	motive(jealousy),
+	person(X,_,f,_),
+	had_affair(X,Man),
+	had_affair(susan,Man).
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Suspect pickpockets whose motive could be money.  *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+  suspect(X):-
+	motive(money),
+	person(X,_,_,pickpocket).
+
+  killer(Killer):-
+	person(Killer,_,_,_),
+	killed(Killed),
+	Killed <> Killer, /* It is not a suicide */
+	suspect(Killer),
+	smeared_in(Killer,Goo),
+	smeared_in(Killed,Goo).
+
+goal
+  killer(X).
+%				ANALISI PROGRAM DI MODUL VISUAl PROLOG
+% analisis dari program di atas adalah ketika eksekusi GOAL di lakukan maka aplikasi prolog memulai pelacakan kebenarannya.
+% dari fakta clause di atas yaitu data-data orang yang terlibat dalam kasus pembunuhan,di clause
+% juga itu di jabarnya tentang bagaimana cara membunuhnya mislanya: motiv pembunuhan, sentaja yang digunakan dan lokasi pembunuhan
+% dalam program dia atas yaitu korban utamanya adalah seorang perempuam bernama susan yang di bunuh dengan pistol
+% serrta data-data orang yang melakukan pembunuhan, sehingga visual prolog akan memulai titik awal pada clause pembunuhan(pembunuhan)
+% dari fakta ini argument symbol X akan diikat kan dengan pembunuh
+% dan fakta pembunuh ini terdapat pernyataan syarat dan prolog akan melakukan unifikasi terhadap pertanyaan syarat" tsb.
+% persyaratan syarat pertama orang pembunuh, selanjutnya prolog akan memanggil fakta orang yang mengetahui atau sebagai saksi pembunuhan dengan melihat fakta pertama dugaan pembunuhan
+% setelah itu prolog akan memanggil lagi fakta pembuuhan di atas lalu di lakukan proses pencarian pernyataan bersyarat dan prolog akan melakukan unifikasi terhdapa pernyataan bersyarat itu
+% pernyataan bersayarat pertama yaitu (susan,senjata), yg di maksd susan di bunuh dengan senjata, setelah itu prolog akan memanggil fakta orang yang membunuh dengan cara mengetahui senjata yang di gunakan
+% kemudia prolog akan memanggil fakta cara_kerja_senjata untuk mengetahui benda apa yang di gunakan,
+% prolog lagi akan mencari fakta dari kemungkinan_milik(X, benda) pada fakta ini ternyata di temukan pernyataaan persayaratan lagi senjata yang di gunakan adalah PISTOL
+% lalu prolog memanggil (X, killer) yaitu pembuunuh dari korban susan adlaah bert yang membunuh susan dengan menggunakan senjata pistol  
